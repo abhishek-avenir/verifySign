@@ -18,9 +18,9 @@ import numpy.random as rng
 from create_model import get_model
 
 
-TRAIN_FOLDER = "data/custom/to_train/"
-EVAL_FOLDER = 'data/custom/to_eval/'
-SAVE_PATH = 'data/custom/'
+TRAIN_FOLDER = "data/custom2/to_train/"
+EVAL_FOLDER = 'data/custom2/to_eval/'
+SAVE_PATH = 'data/custom2/'
 TRAIN_DATA_PICKLE = 'train_images.pkl'
 EVAL_DATA_PICKLE = 'eval_images.pkl'
 
@@ -127,36 +127,72 @@ class GenerateBatch(object):
 	#         yield (pairs, targets)
 
 
+def validate_evalset(eval_batch_size=4):
+    """Create pairs of test image, support set for testing N way one-shot learning. """
+    n_classes, n_examples, w, h = X.shape
+
+    indices = rng.randint(0, n_examples,size=(N,))
+    if language is not None: # if language is specified, select characters for that language
+        low, high = categories[language]
+        if N > high - low:
+            raise ValueError("This language ({}) has less than {} letters".format(language, N))
+        categories = rng.choice(range(low,high),size=(N,),replace=False)
+
+    else: # if no language specified just pick a bunch of random letters
+        categories = rng.choice(range(n_classes),size=(N,),replace=True)
+#     true_category = categories[0]
+    true_category = 0
+    ex1, ex2 = rng.choice(n_examples,replace=False,size=(2,))
+    test_image = np.asarray([X[true_category,ex1,:,:]]*N).reshape(N, w, h,1)
+    support_set = X[categories,indices,:,:]
+    support_set[0,:,:] = X[true_category,ex2]
+    support_set = support_set.reshape(N, w, h,1)
+    targets = np.zeros((N,))
+    targets[0] = 1
+    targets, test_image, support_set = shuffle(targets, test_image, support_set)
+    pairs = [test_image,support_set]
+
+    return pairs, targets
+
+
 def train_model(train_data_path, batch_size=6, n_iter=50, evaluate_every=10,
-				width=WIDTH, height=HEIGHT, model_path=SAVE_PATH):
+				width=WIDTH, height=HEIGHT, model_path=SAVE_PATH,
+				eval_batch_size=4, eval_data_path=None):
 
 	input_shape = (width, height, 1)
 
 	model = get_model(input_shape)
 
 	gd = GenerateBatch(batch_size, train_data_path, width, height)
+	if eval_data_path:
+		gd_eval = GenerateBatch(eval_batch_size, eval_data_path, width, height)
 
+	t_start = time.time()
 	print("Starting training process!")
 	print("-------------------------------------")
 	for i in range(1, n_iter+1):
-		t_start = time.time()
 		(inputs, targets) = gd.get_batch()
 		loss = model.train_on_batch(inputs, targets)
 		if i % evaluate_every == 0:
 			print("\n ------------- \n")
 			print("Time for {0} iterations: {1} mins".format(i, (time.time()-t_start)/60.0))
 			print("Train Loss: {0}".format(loss))
-			# val_acc = test_oneshot(model, N_way, n_val, verbose=True)
+			if eval_data_path:
+				(eval_inputs, eval_targets) = gd_eval.get_batch()
+				probs = model.predict(eval_inputs)
+				got_right = 0
+				for i in range(len(probs)):
+					if not(bool(probs[i][0] < 0.5) ^ (not bool(eval_targets[i]))):
+						got_right += 1
+				print("Eval accuracy: {}".format(got_right/len(probs)))
 			model.save_weights(os.path.join(model_path, 'weights.{}.h5'.format(i)))
-			# if val_acc >= best:
-			#     print("Current best: {0}, previous best: {1}".format(val_acc, best))
-			#     best = val_acc
 
 
 if __name__ == "__main__":
 
 	width = WIDTH
 	height = HEIGHT
+
 	
 	p = Preprocess(width=width, height=height, images_path=TRAIN_FOLDER,
 				   is_train_data=True)
@@ -170,6 +206,9 @@ if __name__ == "__main__":
 	p.process_images()
 	eval_pickle_path = p.save_to_pickle()
 
-
-	train_model(train_data_path=train_pickle_path, width=width, height=height)
+	# batch_size = 6
+	# n_iter = 50
+	# evaluate_every = 10
+	train_model(train_data_path=train_pickle_path, width=width, height=height,
+				eval_data_path=eval_pickle_path)
 
