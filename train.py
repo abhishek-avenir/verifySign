@@ -99,24 +99,25 @@ class GenerateBatch(object):
 	    # make one half of it '1's, so 2nd half of batch has same class
 	    targets[self.batch_size//2:] = 1
 
-	    for person, image_data in self.images_data.items():
 
-    		originals = image_data['originals']
+	    for i in range(self.batch_size):
+	    	person = rng.choice(list(self.images_data.keys()))
+
+    		originals = self.images_data[person]['originals']
 	    	n_originals, w, h = originals.shape
 
-	    	forgeries = image_data['forgeries']
+	    	forgeries = self.images_data[person]['forgeries']
 	    	n_forgeries, w, h = forgeries.shape
 
-	    	for i in range(self.batch_size):
+	    	idx_1 = rng.randint(0, n_originals)
+	    	pairs[0][i, :, :, :] = originals[idx_1].reshape(width, height, 1)
 
-		    	idx_1 = rng.randint(0, n_originals)
-		    	pairs[0][i, :, :, :] = originals[idx_1].reshape(width, height, 1)
-		    	if i >= self.batch_size // 2:
-		    		idx_2 = rng.randint(0, n_originals)
-		    		pairs[1][i,:,:,:] = originals[idx_2].reshape(width, height, 1)
-		    	else:
-		    		idx_2 = rng.randint(0, n_forgeries)
-		    		pairs[1][i,:,:,:] = forgeries[idx_2].reshape(width, height, 1)
+	    	if i >= self.batch_size // 2:
+	    		idx_2 = rng.randint(0, n_originals)
+	    		pairs[1][i,:,:,:] = originals[idx_2].reshape(width, height, 1)
+	    	else:
+	    		idx_2 = rng.randint(0, n_forgeries)
+	    		pairs[1][i,:,:,:] = forgeries[idx_2].reshape(width, height, 1)
 	    
 	    return pairs, targets
 
