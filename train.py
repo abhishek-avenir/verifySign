@@ -1,11 +1,8 @@
 
-
-import sys
 import numpy as np
 import pandas as pd
 import pickle
 import os
-import matplotlib.pyplot as plt
 
 import cv2
 import time
@@ -23,7 +20,6 @@ EVAL_FOLDER = 'data/custom2/to_eval/'
 SAVE_PATH = 'data/custom2/'
 TRAIN_DATA_PICKLE = 'train_images.pkl'
 EVAL_DATA_PICKLE = 'eval_images.pkl'
-
 
 WIDTH = 105
 HEIGHT = 105
@@ -60,11 +56,15 @@ class Preprocess(object):
 			print("Processing: {}".format(person))
 			self.images_data[person] = {}
 			self.images_data[person]['originals'] = np.stack(
-				[self.resize_image(cv2.imread(os.path.join(self.path, person, "orig", file), 0))
-				 for file in os.listdir(os.path.join(self.path, person, "orig"))])
+				[self.resize_image(cv2.imread(
+					os.path.join(self.path, person, "orig", file), 0))
+				 for file in os.listdir(
+				 	os.path.join(self.path, person, "orig"))])
 			self.images_data[person]['forgeries'] = np.stack(
-				[self.resize_image(cv2.imread(os.path.join(self.path, person, "forg", file), 0))
-				 for file in os.listdir(os.path.join(self.path, person, "forg"))])
+				[self.resize_image(cv2.imread(
+					os.path.join(self.path, person, "forg", file), 0))
+				 for file in os.listdir(
+					os.path.join(self.path, person, "forg"))])
 		return self.images_data
 
 	def save_to_pickle(self, pickle_file=None):
@@ -128,34 +128,6 @@ class GenerateBatch(object):
 	#         yield (pairs, targets)
 
 
-def validate_evalset(eval_batch_size=4):
-    """Create pairs of test image, support set for testing N way one-shot learning. """
-    n_classes, n_examples, w, h = X.shape
-
-    indices = rng.randint(0, n_examples,size=(N,))
-    if language is not None: # if language is specified, select characters for that language
-        low, high = categories[language]
-        if N > high - low:
-            raise ValueError("This language ({}) has less than {} letters".format(language, N))
-        categories = rng.choice(range(low,high),size=(N,),replace=False)
-
-    else: # if no language specified just pick a bunch of random letters
-        categories = rng.choice(range(n_classes),size=(N,),replace=True)
-#     true_category = categories[0]
-    true_category = 0
-    ex1, ex2 = rng.choice(n_examples,replace=False,size=(2,))
-    test_image = np.asarray([X[true_category,ex1,:,:]]*N).reshape(N, w, h,1)
-    support_set = X[categories,indices,:,:]
-    support_set[0,:,:] = X[true_category,ex2]
-    support_set = support_set.reshape(N, w, h,1)
-    targets = np.zeros((N,))
-    targets[0] = 1
-    targets, test_image, support_set = shuffle(targets, test_image, support_set)
-    pairs = [test_image,support_set]
-
-    return pairs, targets
-
-
 def train_model(train_data_path, batch_size=6, n_iter=50, evaluate_every=10,
 				width=WIDTH, height=HEIGHT, model_path=SAVE_PATH,
 				eval_batch_size=4, eval_data_path=None):
@@ -176,7 +148,8 @@ def train_model(train_data_path, batch_size=6, n_iter=50, evaluate_every=10,
 		loss = model.train_on_batch(inputs, targets)
 		if i % evaluate_every == 0:
 			print("\n ------------- \n")
-			print("Time for {0} iterations: {1} mins".format(i, (time.time()-t_start)/60.0))
+			print("Time for {0} iterations: {1} mins".format(
+				  i, (time.time()-t_start)/60.0))
 			print("Train Loss: {0}".format(loss))
 			if eval_data_path:
 				(eval_inputs, eval_targets) = gd_eval.get_batch()
@@ -193,14 +166,11 @@ if __name__ == "__main__":
 
 	width = WIDTH
 	height = HEIGHT
-
 	
 	p = Preprocess(width=width, height=height, images_path=TRAIN_FOLDER,
 				   is_train_data=True)
 	p.process_images()
 	train_pickle_path = p.save_to_pickle()
-
-
 
 	p = Preprocess(width=width, height=height, images_path=EVAL_FOLDER,
 				   is_train_data=False)

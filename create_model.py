@@ -68,8 +68,7 @@ def get_siamese_model(input_shape):
     
     # Connect the inputs with the outputs
     siamese_net = Model(inputs=[left_input, right_input], outputs=prediction)
-    
-    # return the model
+
     return siamese_net
 
 def get_model(input_shape):
