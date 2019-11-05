@@ -170,7 +170,7 @@ class ClassifySignature(object):
 				print("Min probability: {}".format(probs.min()))
 				print("Max probability: {}".format(probs.max()))
 				h, w = img.shape
-				cv2.putText(img, str(probs.mean().round(2)), (w-60, h-20),
+				cv2.putText(img, str(probs.mean().round(2)), (w-30, h-20),
 						    cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0,0,255), 1, 
 						    cv2.LINE_AA)
 				cv2.imshow(image, img)
