@@ -15,14 +15,19 @@ import numpy.random as rng
 from create_model import get_model
 
 
-TRAIN_FOLDER = "data/custom2/to_train/"
-EVAL_FOLDER = 'data/custom2/to_eval/'
-SAVE_PATH = 'data/custom2/'
+TRAIN_FOLDER = "data/client/to_train/"
+EVAL_FOLDER = 'data/client/to_eval/'
+SAVE_PATH = 'data/client/model'
 TRAIN_DATA_PICKLE = 'train_images.pkl'
 EVAL_DATA_PICKLE = 'eval_images.pkl'
 
 WIDTH = 105
 HEIGHT = 105
+
+BATCH_SIZE = 6
+N_ITER = 50
+EVALUATE_EVERY = 10
+EVAL_BATCH_SIZE = 4
 
 
 def save_to_pickle(data, file_path):
@@ -128,9 +133,10 @@ class GenerateBatch(object):
 	#         yield (pairs, targets)
 
 
-def train_model(train_data_path, batch_size=6, n_iter=50, evaluate_every=10,
+def train_model(train_data_path, batch_size=BATCH_SIZE, n_iter=N_ITER,
+				evaluate_every=EVALUATE_EVERY, eval_batch_size=EVAL_BATCH_SIZE,
 				width=WIDTH, height=HEIGHT, model_path=SAVE_PATH,
-				eval_batch_size=4, eval_data_path=None):
+				eval_data_path=None):
 
 	input_shape = (width, height, 1)
 
@@ -177,9 +183,6 @@ if __name__ == "__main__":
 	p.process_images()
 	eval_pickle_path = p.save_to_pickle()
 
-	# batch_size = 6
-	# n_iter = 50
-	# evaluate_every = 10
 	train_model(train_data_path=train_pickle_path, width=width, height=height,
 				eval_data_path=eval_pickle_path)
 
