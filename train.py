@@ -1,8 +1,6 @@
 
-import h5py
 import numpy as np
 import pandas as pd
-import pickle
 import os
 
 import cv2
@@ -18,8 +16,7 @@ from create_model import get_model
 
 TRAIN_FOLDER = "data/client/to_train/"
 EVAL_FOLDER = 'data/client/to_eval/'
-PREDICT_FOLDER = 'data/client/to_predict/'
-SAVE_PATH = 'data/client/model'
+SAVE_PATH = 'models/client/'
 TRAIN_DATA_PICKLE = 'train_images.pkl'
 EVAL_DATA_PICKLE = 'eval_images.pkl'
 TEST_DATA_PICKLE = 'test_images.pkl'
@@ -34,13 +31,7 @@ EVAL_BATCH_SIZE = 4
 
 THRESHOLD = 0.5
 
-def save_to_pickle(data, file_path):
-	with open(file_path, 'wb') as f:
-		pickle.dump(data, f)
-
-def load_pickle(file_path):
-	with open(file_path, 'rb') as f:
-		return pickle.load(f)
+from utils import save_to_pickle, load_pickle
 
 
 class Preprocess(object):
@@ -135,54 +126,6 @@ class GenerateBatch(object):
 	#         pairs, targets = get_batch(self.batch_size)
 	#         yield (pairs, targets)
 
-class ClassifySignature(object):
-
-	def __init__(self, predict_path=PREDICT_FOLDER,
-				 train_pickle_path="data/client/model/train_images.pkl",
-				 width=WIDTH, height=HEIGHT):
-		self.width = WIDTH
-		self.height = HEIGHT
-		self.predict_path = predict_path
-		self.train_images = load_pickle(train_pickle_path)
-		
-	def predict_against_originals(self):
-
-		input_shape = (self.width, self.height, 1)
-
-		model = get_model(input_shape)
-		model.load_weights(os.path.join(SAVE_PATH, 'weights.h5'))
-
-		for person in os.listdir(self.predict_path):
-			originals = self.train_images[person]['originals']
-			for image in os.listdir(os.path.join(self.predict_path, person)):
-				img = cv2.imread(os.path.join(self.predict_path, person, image), 0)
-				image_to_predict = cv2.resize(img, (self.width, self.height))
-				pairs = [np.zeros((len(originals), self.width, self.height, 1))
-						 for i in range(2)]	
-				for idx_1 in range(len(originals)):																																																																																																																																													
-					pairs[0][idx_1, :, :, :] = \
-						originals[idx_1].reshape(self.width, self.height, 1)
-					pairs[1][idx_1, :, :, :] = image_to_predict.reshape(self.width, self.height, 1)
-
-				probs = np.array(model.predict(pairs)).flatten()
-				print("Probabilites: {}".format(probs))
-				print("Average probability: {}".format(probs.mean()))
-				print("Min probability: {}".format(probs.min()))
-				print("Max probability: {}".format(probs.max()))
-				h, w = img.shape
-				cv2.putText(img, str(probs.mean().round(2)), (w-30, h-20),
-						    cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0,0,255), 1, 
-						    cv2.LINE_AA)
-				cv2.imshow(image, img)
-				cv2.waitKey(0)
-				cv2.destroyAllWindows()
-
-
-if __name__ == "__main__":
-	c = ClassifySignature()
-	c.predict_against_originals()
-
-'''
 
 def train_model(train_data_path, batch_size=BATCH_SIZE, n_iter=N_ITER,
 				evaluate_every=EVALUATE_EVERY, eval_batch_size=EVAL_BATCH_SIZE,
@@ -236,5 +179,3 @@ if __name__ == "__main__":
 
 	train_model(train_data_path=train_pickle_path, width=width, height=height,
 				eval_data_path=eval_pickle_path)
-
-'''
