@@ -1,70 +1,46 @@
 
-import numpy as np
-import pandas as pd
-import os
-
 import cv2
+import numpy.random as rng
+import numpy as np
+import os
+import pandas as pd
 import time
-from collections import defaultdict
 
+from collections import defaultdict
 from sklearn.utils import shuffle
 
-import numpy.random as rng
-
 from create_model import get_model
-
-
-TRAIN_FOLDER = "data/client/to_train/"
-EVAL_FOLDER = 'data/client/to_eval/'
-SAVE_PATH = 'models/client/'
-TRAIN_DATA_PICKLE = 'train_images.pkl'
-EVAL_DATA_PICKLE = 'eval_images.pkl'
-TEST_DATA_PICKLE = 'test_images.pkl'
-
-WIDTH = 105
-HEIGHT = 105
-
-BATCH_SIZE = 6
-N_ITER = 50
-EVALUATE_EVERY = 10
-EVAL_BATCH_SIZE = 4
-
-THRESHOLD = 0.5
-
+from config import *
 from utils import save_to_pickle, load_pickle
 
 
 class Preprocess(object):
 
-	def __init__(self, width=WIDTH, height=HEIGHT, images_path=TRAIN_FOLDER,
-				 save_path=SAVE_PATH, is_train_data=False):
+	def __init__(self, width=WIDTH, height=HEIGHT, save_path=SAVE_PATH,
+				 is_train_data=False):
 		self.width = width
 		self.height = height
 		self.save_path = save_path
-		self.path = images_path
 		self.images_data = {}
 		self.is_train_data = is_train_data
 
-	def resize_image(self, image):
-		# cv2.imshow("Image", image)
-		# cv2.waitKey(0)
-		# cv2.destroyAllWindows()
-		return cv2.resize(image, (self.width, self.height))
-
 	def process_images(self):
-		for person in os.listdir(self.path):
-			print("Processing: {}".format(person))
+		if self.is_train_data:
+			f = "train"
+		else:
+			f = "eval"
+		for person, path_details in PATHS.items():
+			print(f"Processing: {person}")
 			self.images_data[person] = {}
-			self.images_data[person]['originals'] = np.stack(
-				[self.resize_image(cv2.imread(
-					os.path.join(self.path, person, "orig", file), 0))
-				 for file in os.listdir(
-				 	os.path.join(self.path, person, "orig"))])
-			self.images_data[person]['forgeries'] = np.stack(
-				[self.resize_image(cv2.imread(
-					os.path.join(self.path, person, "forg", file), 0))
-				 for file in os.listdir(
-					os.path.join(self.path, person, "forg"))])
+			path_to_orig = path_details[f]['orig']
+			path_to_forg = path_details[f]['forg']
+			self.images_data[person]['originals'] = \
+				np.stack([cv2.imread(os.path.join(path_to_orig, file), 0)
+						 for file in os.listdir(path_to_orig)])
+			self.images_data[person]['forgeries'] = \
+				np.stack([cv2.imread(os.path.join(path_to_forg, file), 0)
+						 for file in os.listdir(path_to_forg)])
+		person = rng.choice(list(self.images_data.keys()))
 		return self.images_data
 
 	def save_to_pickle(self, pickle_file=None):
@@ -78,7 +54,6 @@ class Preprocess(object):
 		return path
 
 
-
 class GenerateBatch(object):
 
 	def __init__(self, batch_size, data_pickle_path, width=WIDTH, height=HEIGHT):
@@ -87,11 +62,13 @@ class GenerateBatch(object):
 		else:
 			self.images_data = load_pickle(data_pickle_path)
 		self.batch_size = batch_size
+		self.width = width
+		self.height = height
 
 	def get_batch(self):
 
 	    # initialize 2 empty arrays for the input image batch
-	    pairs = [np.zeros((self.batch_size, width, height, 1)) for i in range(2)]
+	    pairs = [np.zeros((self.batch_size, self.width, self.height, 1)) for i in range(2)]
 	    
 	    # initialize vector for the targets
 	    targets = np.zeros((self.batch_size,))
@@ -109,14 +86,14 @@ class GenerateBatch(object):
 	    	n_forgeries, w, h = forgeries.shape
 
 	    	idx_1 = rng.randint(0, n_originals)
-	    	pairs[0][i, :, :, :] = originals[idx_1].reshape(width, height, 1)
+	    	pairs[0][i, :, :, :] = originals[idx_1].reshape(self.width, self.height, 1)
 
 	    	if i >= self.batch_size // 2:
 	    		idx_2 = rng.randint(0, n_originals)
-	    		pairs[1][i,:,:,:] = originals[idx_2].reshape(width, height, 1)
+	    		pairs[1][i,:,:,:] = originals[idx_2].reshape(self.width, self.height, 1)
 	    	else:
 	    		idx_2 = rng.randint(0, n_forgeries)
-	    		pairs[1][i,:,:,:] = forgeries[idx_2].reshape(width, height, 1)
+	    		pairs[1][i,:,:,:] = forgeries[idx_2].reshape(self.width, self.height, 1)
 	    
 	    return pairs, targets
 
@@ -156,7 +133,8 @@ def train_model(train_data_path, batch_size=BATCH_SIZE, n_iter=N_ITER,
 				probs = model.predict(eval_inputs)
 				got_right = 0
 				for i in range(len(probs)):
-					if not(bool(probs[i][0] < THRESHOLD) ^ (not bool(eval_targets[i]))):
+					if not(bool(probs[i][0] < CLASSIFIER_THRESHOLD) ^
+						   (not bool(eval_targets[i]))):
 						got_right += 1
 				print("Eval accuracy: {}".format(got_right/len(probs)))
 			model.save_weights(os.path.join(model_path, 'weights.h5'))
@@ -164,18 +142,13 @@ def train_model(train_data_path, batch_size=BATCH_SIZE, n_iter=N_ITER,
 
 if __name__ == "__main__":
 
-	width = WIDTH
-	height = HEIGHT
-	
-	p = Preprocess(width=width, height=height, images_path=TRAIN_FOLDER,
-				   is_train_data=True)
+	p = Preprocess(width=WIDTH, height=HEIGHT, is_train_data=True)
 	p.process_images()
 	train_pickle_path = p.save_to_pickle()
 
-	p = Preprocess(width=width, height=height, images_path=EVAL_FOLDER,
-				   is_train_data=False)
+	p = Preprocess(width=WIDTH, height=HEIGHT, is_train_data=False)
 	p.process_images()
 	eval_pickle_path = p.save_to_pickle()
 
-	train_model(train_data_path=train_pickle_path, width=width, height=height,
+	train_model(train_data_path=train_pickle_path, width=WIDTH, height=HEIGHT,
 				eval_data_path=eval_pickle_path)
