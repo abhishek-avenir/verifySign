@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<main role="main" class="container">
+	<div class="content-section">
+		<h1>Upload Signature Image</h1>
+		<p class="lead">
+			<form action="{{ url_for('predict') }}" method="post" enctype="multipart/form-data">
+        		<input type="file" name="file">
+        		<input type="submit" value="Upload">
+    		</form>
+    	</p>
+	</div>
+</main>    
+
+{% endblock content %}

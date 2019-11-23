@@ -23,16 +23,12 @@ class ClassifySignature(object):
 		self.height = height
 		self.predict_path = predict_path
 		self.train_images = load_pickle(train_pickle_path)
+		self.model = get_model((self.width, self.height, 1))
+		self.model.load_weights(os.path.join(SAVE_PATH, 'weights.h5'))
 		
-	def predict_against_originals(self, image, persons, identity=False):
-
+	def predict_against_originals(self, image, persons=None, identify=False):
 		img = crop_image_to_signature(image)
-		input_shape = (self.width, self.height, 1)
-
-		model = get_model(input_shape)
-		model.load_weights(os.path.join(SAVE_PATH, 'weights.h5'))
-
-		if identity:
+		if identify:
 			persons = self.train_images.keys()
 		print(f"Verifying against: {list(persons)}")
 		probabilites_by_person = {}
@@ -40,15 +36,15 @@ class ClassifySignature(object):
 			originals = self.train_images[person]['originals']
 			image_to_predict = cv2.resize(img, (self.width, self.height))
 			pairs = [np.zeros((len(originals), self.width, self.height, 1))
-					 for i in range(2)]	
-			for idx_1 in range(len(originals)):																																																																																																																																													
+					 for i in range(2)]
+			for idx_1 in range(len(originals)):
 				pairs[0][idx_1, :, :, :] = \
 					originals[idx_1].reshape(self.width, self.height, 1)
 				pairs[1][idx_1, :, :, :] = \
 					image_to_predict.reshape(self.width, self.height, 1)
 
-			probs = np.array(model.predict(pairs)).flatten()
-			probabilites_by_person[person] = probs.mean()
+			probs = np.array(self.model.predict(pairs)).flatten()
+			probabilites_by_person[person] = float(probs.mean())
 			# print("Probabilites: {}".format(probs))
 			# print("Average probability: {}".format(probs.mean()))
 			# print("Min probability: {}".format(probs.min()))
@@ -57,12 +53,12 @@ class ClassifySignature(object):
 			cv2.putText(
 				image_to_predict, str(probs.mean().round(2)), (w-30, h-5),
 				cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0,0,255), 1, cv2.LINE_AA)
-			cv2.imshow(f"Against {person}", image_to_predict)
-		print("Image: {}".format(image))
+			# cv2.imshow(f"Against {person}", image_to_predict)
 		for person, probability in probabilites_by_person.items():
 			print(f"Probability against `{person}`: {probability}")
-		cv2.waitKey(0)
-		cv2.destroyAllWindows()
+		# cv2.waitKey(0)
+		# cv2.destroyAllWindows()
+		return probabilites_by_person
 
 
 if __name__ == "__main__":
@@ -73,4 +69,5 @@ if __name__ == "__main__":
 	parser.add_argument('-i', '--image', required=True)
 	args = parser.parse_args()
 	c = ClassifySignature()
-	c.predict_against_originals(args.image, args.persons, args.identify)
+	image = cv2.imread(args.image)
+	c.predict_against_originals(image, args.persons, args.identify)

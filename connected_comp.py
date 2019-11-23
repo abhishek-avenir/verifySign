@@ -1,6 +1,6 @@
 
-import numpy as np
 import cv2
+import numpy as np
 import os
 
 from skimage.filters import threshold_local
@@ -10,10 +10,9 @@ from config import *
 
 
 def crop_image_to_signature(
-	image_path, output_folder=None, threshold=MIN_BLOB_PIXELS,
-	image_shape=(WIDTH, HEIGHT), padding=PADDING):
+		image, output_folder=None, threshold=MIN_BLOB_PIXELS,
+		image_shape=(WIDTH, HEIGHT), padding=PADDING):
 
-	image = cv2.imread(image_path)
 	image = cv2.resize(image, image_shape)
 	 
 	# extract the Value component from the HSV color space and
@@ -64,7 +63,7 @@ def crop_image_to_signature(
 		min_col = max(0, min(cols)-padding)
 		max_col = max(cols) + padding
 	except:
-		print(f"Failed to crop {image_path} to signature.")
+		print(f"Failed to crop image to signature.")
 		return
 
 	cropped_image = image[min_row:max_row+1, min_col:max_col+1]
@@ -84,9 +83,9 @@ def crop_image_to_signature(
 	gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
 	norm_image = np.zeros_like(gray)
 	norm_image = cv2.normalize(gray,  norm_image, 0, 255, cv2.NORM_MINMAX)
-	if output_folder:
-		output_image = os.path.join(output_folder, os.path.basename(image_path))
-		print(f"Saving {output_image}.. ")
-		cv2.imwrite(output_image, norm_image)
-	else:
-		return norm_image
+	# if output_folder:
+	# 	output_image = os.path.join(output_folder, os.path.basename(image_path))
+	# 	print(f"Saving {output_image}.. ")
+	# 	cv2.imwrite(output_image, norm_image)
+	# else:
+	return norm_image
