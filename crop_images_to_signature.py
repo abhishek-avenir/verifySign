@@ -7,7 +7,7 @@ from copy import copy
 from glob import glob
 
 from config import *
-from connected_comp import crop_image_to_signature
+from connected_comp_new import crop_image_to_signature
 
 
 def crop_image_by_cc(input_folder, output_folder):

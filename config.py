@@ -25,13 +25,13 @@ INPUT_TO_OUTPUT = {
 PATHS = {
 	"person_1": {
 		'train': {
-			'orig': "data/client/to_train/person_1/orig_cropped",
-			'forg': "data/client/to_train/person_1/forg_cropped"},
+			'orig': "data/client/to_train/person_1/orig",
+			'forg': "data/client/to_train/person_1/forg"},
 		'eval': {
-			'orig': "data/client/to_eval/person_1/orig_cropped",
-			'forg': "data/client/to_eval/person_1/forg_cropped"}}}
+			'orig': "data/client/to_eval/person_1/orig",
+			'forg': "data/client/to_eval/person_1/forg"}}}
 
-SAVE_PATH = 'models/client/'
+SAVE_PATH = 'models_new/client/'
 
 TRAIN_DATA_PICKLE = 'train_images.pkl'
 EVAL_DATA_PICKLE = 'eval_images.pkl'
@@ -42,4 +42,4 @@ N_ITER = 50
 EVALUATE_EVERY = 10
 EVAL_BATCH_SIZE = 4
 
-CLASSIFIER_THRESHOLD = 0.9
+CLASSIFIER_THRESHOLD = 0.7

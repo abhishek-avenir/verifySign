@@ -5,7 +5,7 @@ import numpy as np
 
 from argparse import ArgumentParser
 from config import *
-from connected_comp import crop_image_to_signature
+from connected_comp_new import crop_image_to_signature
 from create_model import get_model
 from utils import load_pickle
 
@@ -27,14 +27,22 @@ class ClassifySignature(object):
 		self.model.load_weights(os.path.join(SAVE_PATH, 'weights.h5'))
 		
 	def predict_against_originals(self, image, persons=None, identify=False):
-		img = crop_image_to_signature(image)
+		# cv2.imshow("Image", image)
+		# cv2.waitKey(0)
+		# cv2.destroyAllWindows()
+		probabilites_by_person = {}
+		try:
+			img = crop_image_to_signature(image)
+		except:
+			probabilites_by_person['message'] = "Unable to find signature"
+			print("Unable to find signature!")
+			return probabilites_by_person
 		if identify:
 			persons = self.train_images.keys()
 		print(f"Verifying against: {list(persons)}")
-		probabilites_by_person = {}
+		image_to_predict = cv2.resize(img, (self.width, self.height))
 		for person in persons:
 			originals = self.train_images[person]['originals']
-			image_to_predict = cv2.resize(img, (self.width, self.height))
 			pairs = [np.zeros((len(originals), self.width, self.height, 1))
 					 for i in range(2)]
 			for idx_1 in range(len(originals)):

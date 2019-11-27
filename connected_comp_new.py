@@ -14,7 +14,6 @@ def crop_image_to_signature(
 		image_shape=(WIDTH, HEIGHT), padding=PADDING):
 
 	image = cv2.resize(image, image_shape)
-	 
 	# extract the Value component from the HSV color space and
 	# apply adaptive thresholding to reveal the characters on the image
 	H, S, V = cv2.split(cv2.cvtColor(image, cv2.COLOR_BGR2HSV))
@@ -42,7 +41,7 @@ def crop_image_to_signature(
 		labelMask = np.zeros(thresh.shape, dtype="uint8")
 		labelMask[labels == label] = 255
 		numPixels = cv2.countNonZero(labelMask)
-	 
+
 		# if the number of pixels in the component is sufficiently large, add it to our
 		# mask of "large" blobs
 		if numPixels > threshold:
@@ -56,7 +55,24 @@ def crop_image_to_signature(
 	# show the large components in the image
 	# cv2.imshow("Large blobs", mask)
 
-	[rows, cols] = np.where(mask != 0)
+	# cv2.imshow("Mask", mask)
+	# cv2.waitKey(0)
+	# cv2.destroyAllWindows()
+
+	res = cv2.bitwise_and(image, image, mask=mask)
+
+	mask = cv2.bitwise_not(mask)
+
+	background = np.full(image.shape, 255, dtype=np.uint8)
+	background_masked = cv2.bitwise_and(background, background, mask=mask)
+
+	final = cv2.bitwise_or(res, background_masked)
+
+	# res[np.where((res==[0,0,0]).all(axis=2))] = [255,255,255]
+
+	# cv2.imshow("Cleaned background", final)
+
+	rows, cols = np.where((final != [255, 255, 255]).all(axis=2))
 	try:
 		min_row = max(0, min(rows)-padding)
 		max_row = max(rows) + padding
@@ -66,10 +82,20 @@ def crop_image_to_signature(
 		print(f"Failed to crop image to signature.")
 		return
 
-	cropped_image = image[min_row:max_row+1, min_col:max_col+1]
-	# border = np.array([[[0]*cropped_image.shape[2]]*5]*cropped_image.shape[0], dtype='uint8')
+	cropped_image = final[min_row:max_row+1, min_col:max_col+1]
+	# cv2.imshow("After cropping", cropped_image)
+	# cv2.waitKey(0)
+	# cv2.destroyAllWindows()
+	try:
+		r_image = cv2.resize(res, (cropped_image.shape[1], cropped_image.shape[0]))
+		border = np.array([[[0, 0, 0]]*5]*cropped_image.shape[0], dtype='uint8')
+		# print("Shape of r_image: ", r_image.shape)
+		# print("Shape of border: ", border.shape)
+		# print("Shape of cropped_image: ", cropped_image.shape)
+	except:
+		pass
 	# to_show = np.hstack(
-	# 	(cv2.resize(image, (cropped_image.shape[1], cropped_image.shape[0])),
+	# 	(cv2.resize(res, (cropped_image.shape[1], cropped_image.shape[0])),
 	# 	 border,
 	# 	 cropped_image))
 	# cv2.imshow('Bounded Signature', to_show)
@@ -83,9 +109,6 @@ def crop_image_to_signature(
 	gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
 	norm_image = np.zeros_like(gray)
 	norm_image = cv2.normalize(gray,  norm_image, 0, 255, cv2.NORM_MINMAX)
-	cv2.imshow("norm_image", norm_image)
-	cv2.waitKey(0)
-	cv2.destroyAllWindows()
 	# if output_folder:
 	# 	output_image = os.path.join(output_folder, os.path.basename(image_path))
 	# 	print(f"Saving {output_image}.. ")

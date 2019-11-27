@@ -13,6 +13,7 @@ from create_model import get_model
 from config import *
 from utils import save_to_pickle, load_pickle
 
+from connected_comp_new import crop_image_to_signature
 
 class Preprocess(object):
 
@@ -34,12 +35,26 @@ class Preprocess(object):
 			self.images_data[person] = {}
 			path_to_orig = path_details[f]['orig']
 			path_to_forg = path_details[f]['forg']
-			self.images_data[person]['originals'] = \
-				np.stack([cv2.imread(os.path.join(path_to_orig, file), 0)
-						 for file in os.listdir(path_to_orig)])
-			self.images_data[person]['forgeries'] = \
-				np.stack([cv2.imread(os.path.join(path_to_forg, file), 0)
-						 for file in os.listdir(path_to_forg)])
+
+			origs = []
+			for file in os.listdir(path_to_orig):
+				img = cv2.imread(os.path.join(path_to_orig, file))
+				img = crop_image_to_signature(
+					img, output_folder=None, threshold=MIN_BLOB_PIXELS,
+					image_shape=(WIDTH, HEIGHT), padding=PADDING)
+				print("Shape of img: {}".format(img.shape))
+				origs.append(img)
+			self.images_data[person]['originals'] = np.stack(origs)
+
+			forgs = []
+			for file in os.listdir(path_to_forg):
+				img = cv2.imread(os.path.join(path_to_forg, file))
+				img = crop_image_to_signature(
+					img, output_folder=None, threshold=MIN_BLOB_PIXELS,
+					image_shape=(WIDTH, HEIGHT), padding=PADDING)
+				forgs.append(img)
+			self.images_data[person]['forgeries'] = np.stack(forgs)
+
 		person = rng.choice(list(self.images_data.keys()))
 		return self.images_data
 
