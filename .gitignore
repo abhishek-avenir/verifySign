@@ -1,4 +1,5 @@
 models/client/weights.h5
 models_old/client/weights.h5
+models_new/client/weights.h5
 __pycache__/
 .ipynb_checkpoints/

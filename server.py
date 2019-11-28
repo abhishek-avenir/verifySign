@@ -73,6 +73,6 @@ curl -X POST -F file=@data/client/to_predict/person_1/forg_IMG_0804.jpeg \
 
 curl --header "Content-Type: application/json" \
   --request POST \
-  --data '{"image_url": "https://upload.wikimedia.org/wikipedia/commons/b/b2/Celentano_signature.png"}' \
+  --data '{"image_url": "https://daily.jstor.org/wp-content/uploads/2014/11/NapoleonSignature2_1050x700.jpg"}' \
   http://localhost:5000/classify_link
 '''
